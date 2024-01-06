@@ -1,15 +1,108 @@
-import React from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components";
 import { loginHandler } from "../store/RegisterSlice";
+import { SIGN_IN, SIGN_UP } from "../utils/url";
 
 const Register = () => {
   const dispatch = useDispatch();
   const { isLogin } = useSelector((state) => state.register);
 
+  const [email, setEmail] = useState("");
+  const [emailIsValid, setEmailIsValid] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordIsValid, setPasswordIsValid] = useState(false);
+
+  const validEmailRegex = RegExp(/^[^@\s]+@[^@\s]+\.[^@\s]+$/);
+
+  const changeEmailHandler = (e) => {
+    const emailValue = e.target.value;
+    setEmail(emailValue);
+    const validEmail = validEmailRegex.test(emailValue);
+    setEmailIsValid(validEmail);
+  };
+
+  const changePasswordHandler = (e) => {
+    const passwordValue = e.target.value;
+    setPassword(passwordValue);
+    const validPassword = passwordValue.length > 5;
+    setPasswordIsValid(validPassword);
+  };
+
   const isLoginClickHandler = (e) => {
     e.preventDefault();
     dispatch(loginHandler());
+  };
+
+  const isValid = emailIsValid && passwordIsValid;
+
+  const submitHandlerClick = async (e) => {
+    e.preventDefault();
+    const dataValueRegister = {
+      email: email,
+      password: password,
+    };
+    if (isLogin) {
+      try {
+        const response = await fetch(`${SIGN_IN}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(dataValueRegister),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (errorData && errorData.error && errorData.error.message) {
+            if (errorData.error.message === "EMAIL_EXISTS") {
+              console.error(
+                "Email already exists. Please use a different email address."
+              );
+            } else {
+              console.error(errorData.error.message);
+            }
+          } else {
+            console.error("Authorization failed:", errorData);
+          }
+          return;
+        }
+        const data = await response.json();
+        console.log(data);
+      } catch (error) {
+        console.error("Unexpected error:", error.message);
+      }
+    } else {
+      try {
+        const response = await fetch(`${SIGN_UP}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(dataValueRegister),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (errorData && errorData.error && errorData.error.message) {
+            if (errorData.error.message === "EMAIL_EXISTS") {
+              console.error(
+                "Email already exists. Please use a different email address."
+              );
+            } else {
+              console.error(errorData.error.message);
+            }
+          } else {
+            console.error("Authorization failed:", errorData);
+          }
+          return;
+        }
+
+        const data = await response.json();
+        console.log(data);
+      } catch (error) {
+        console.error("Unexpected error:", error.message);
+      }
+    }
   };
 
   return (
@@ -18,18 +111,23 @@ const Register = () => {
         <h1> {isLogin ? "login" : "Sign up"}</h1>
         <div>
           <label htmlFor="email">Email</label>
-          <input type="email" id="email" />
+          <input type="email" id="email" onChange={changeEmailHandler} />
         </div>
         <div>
           <label htmlFor="password">password</label>
-          <input type="password" id="password" />
+          <input
+            type="password"
+            id="password"
+            onChange={changePasswordHandler}
+          />
         </div>
-        {/* <div> */}
-        <button>{isLogin ? "sign in" : "sign up"}</button>
+
+        <button onClick={submitHandlerClick} disabled={!isValid}>
+          {isLogin ? "sign in" : "sign up"}
+        </button>
         <p onClick={isLoginClickHandler}>
           {isLogin ? "create new account" : "you already have an account ?"}
         </p>
-        {/* </div> */}
       </Container>
     </FormRegisterStyle>
   );
@@ -84,6 +182,12 @@ const Container = styled.div`
     background-color: black;
     border: none;
     border-radius: 10px;
+  }
+  & button:disabled,
+  & button[disabled] {
+    border: 1px solid #999999;
+    background-color: #cccccc;
+    color: #666666;
   }
 
   & p {
